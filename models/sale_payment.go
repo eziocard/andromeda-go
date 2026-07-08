@@ -12,10 +12,9 @@ type SalePayment struct {
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
 
-	Method string `json:"method" gorm:"size:10;not null"`
+	Method string `json:"method" gorm:"size:255;not null"`
 	Amount uint   `json:"amount" gorm:"not null"`
 
-	// Foreign Key Sale
-	SaleID uint `json:"saleId"`
-	Sale   Sale `json:"-"`
+	SaleID uint `json:"saleId" gorm:"not null"`
+	Sale   Sale `json:"sale" gorm:"foreignKey:SaleID;references:ID"`
 }

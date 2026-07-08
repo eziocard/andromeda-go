@@ -29,6 +29,7 @@ func main() {
 	r.Static("/media", "./media")
 	// Todo Routes
 	routes.ProductRoutes(r)
+	routes.SaleRoutes(r)
 
 	r.Run()
 }

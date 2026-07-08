@@ -12,15 +12,13 @@ type SaleDetail struct {
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
 
-	ProductName string `json:"productName" gorm:"size:255;not null"`
-	UnitPrice   uint   `json:"unitPrice" gorm:"not null"`
 	Quantity    uint   `json:"quantity" gorm:"not null"`
+	UnitPrice   uint   `json:"unitPrice" gorm:"not null"`
+	ProductName string `json:"productName" gorm:"size:255;not null"`
 
-	// Foreign Key Sale
-	SaleID uint `json:"saleId"`
-	Sale   Sale `json:"-"`
+	ProductID uint    `json:"productId" gorm:"not null"`
+	Product   Product `json:"product" gorm:"foreignKey:ProductID;references:ID"`
 
-	// Foreign Key Product
-	ProductID uint    `json:"productId"`
-	Product   Product `json:"product"`
+	SaleID uint `json:"saleId" gorm:"not null"`
+	Sale   Sale `json:"-" gorm:"foreignKey:SaleID;references:ID"`
 }

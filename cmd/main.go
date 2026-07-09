@@ -30,6 +30,7 @@ func main() {
 	// Todo Routes
 	routes.ProductRoutes(r)
 	routes.SaleRoutes(r)
+	routes.BusinessRoutes(r)
 
 	r.Run()
 }

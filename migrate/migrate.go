@@ -15,5 +15,6 @@ func main() {
 		&models.Product{},
 		&models.Sale{},
 		&models.SaleDetail{},
-		&models.SalePayment{})
+		&models.SalePayment{},
+		&models.Business{})
 }

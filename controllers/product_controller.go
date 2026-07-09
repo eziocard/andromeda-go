@@ -121,13 +121,11 @@ func ProductsUpdate(c *gin.Context) {
 }
 
 func ProductsDelete(c *gin.Context) {
-	barcode := strings.TrimSpace(c.Param("barcode"))
+	id := c.Param("id")
 
-	var product models.Product
-	if err := initializers.DB.Where("barcode = ?", barcode).First(&product).Error; err == nil && product.Image != nil {
-		_ = utils.DeleteProductImage(*product.Image)
-	}
+	initializers.DB.Delete(&models.Product{}, id)
 
-	initializers.DB.Where("barcode = ?", barcode).Delete(&models.Product{})
-	c.JSON(200, gin.H{"message": "Product removed Successfully"})
+	c.JSON(200, gin.H{
+		"message": "Producto eliminado correctamente",
+	})
 }

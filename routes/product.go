@@ -13,6 +13,6 @@ func ProductRoutes(r *gin.Engine) {
 		productGroup.GET("/:id", controllers.ProductShow)
 		productGroup.GET("/barcode/:barcode", controllers.ProductShowByBarcode)
 		productGroup.PATCH("/:barcode", controllers.ProductsUpdate)
-		productGroup.DELETE("/:barcode", controllers.ProductsDelete)
+		productGroup.DELETE("/:id", controllers.ProductsDelete)
 	}
 }

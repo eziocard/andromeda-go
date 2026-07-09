@@ -17,4 +17,7 @@ type SalePayment struct {
 
 	SaleID uint `json:"saleId" gorm:"not null"`
 	Sale   Sale `json:"sale" gorm:"foreignKey:SaleID;references:ID"`
+
+	BusinessID uint     `json:"businessId" gorm:"not null"`
+	Business   Business `json:"-" gorm:"foreignKey:businessId;references:ID"`
 }

@@ -9,6 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Crear registro de venta
+
 func SaleCreate(c *gin.Context) {
 	var body dto.SaleCreateInput
 
@@ -87,6 +89,7 @@ func SaleCreate(c *gin.Context) {
 
 }
 
+// Traer ventas
 func SaleIndex(c *gin.Context) {
 	var sales []models.Sale
 

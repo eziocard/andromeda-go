@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/eziocard/andromeda-go/initializers"
-	"github.com/eziocard/andromeda-go/models"
+	"github.com/eziocard/andromeda-go/internal/models"
 )
 
 func init() {
@@ -16,5 +16,11 @@ func main() {
 		&models.Sale{},
 		&models.SaleDetail{},
 		&models.SalePayment{},
-		&models.Business{})
+		&models.Business{},
+		&models.Role{},
+		&models.User{},
+		&models.RefreshToken{},
+		&models.VoidedSale{},
+		&models.VoidedSaleDetail{},
+		&models.VoidedSalePayment{})
 }

@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/eziocard/andromeda-go/initializers"
-	"github.com/eziocard/andromeda-go/routes"
+	"github.com/eziocard/andromeda-go/internal/routes"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -31,6 +31,8 @@ func main() {
 	routes.ProductRoutes(r)
 	routes.SaleRoutes(r)
 	routes.BusinessRoutes(r)
+	routes.RoleRoutes(r)
+	routes.UserRoutes(r)
 
 	r.Run()
 }

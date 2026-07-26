@@ -41,3 +41,7 @@ type SaleResponse struct {
 	Items        []SaleDetailResponse  `json:"items"`
 	PaymentsList []SalePaymentResponse `json:"payments_list"`
 }
+
+type SaleVoidInput struct {
+	Reason string `json:"reason"` // opcional
+}

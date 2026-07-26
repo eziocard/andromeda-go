@@ -16,7 +16,7 @@ type SalePayment struct {
 	Amount uint   `json:"amount" gorm:"not null"`
 
 	SaleID uint `json:"saleId" gorm:"not null"`
-	Sale   Sale `json:"sale" gorm:"foreignKey:SaleID;references:ID"`
+	Sale   Sale `json:"-" gorm:"foreignKey:SaleID;references:ID"`
 
 	BusinessID uint     `json:"businessId" gorm:"not null"`
 	Business   Business `json:"-" gorm:"foreignKey:businessId;references:ID"`

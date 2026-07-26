@@ -6,7 +6,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// aqui solo almaceno el total de la venta
 type Sale struct {
 	ID        uint           `json:"id" gorm:"primarykey"`
 	CreatedAt time.Time      `json:"createdAt"`
@@ -15,8 +14,11 @@ type Sale struct {
 
 	Total uint `json:"total" gorm:"not null"`
 
+	Voided   bool       `json:"voided" gorm:"default:false;index"`
+	VoidedAt *time.Time `json:"voidedAt"`
+
 	BusinessID uint     `json:"businessId" gorm:"not null"`
-	Business   Business `json:"-" gorm:"foreignKey:businessId;references:ID"`
+	Business   Business `json:"-" gorm:"foreignKey:BusinessId;references:ID"`
 
 	Details  []SaleDetail  `json:"details,omitempty" gorm:"foreignKey:SaleID"`
 	Payments []SalePayment `json:"payments,omitempty" gorm:"foreignKey:SaleID"`

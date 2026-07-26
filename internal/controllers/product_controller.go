@@ -5,12 +5,17 @@ import (
 	"strings"
 
 	"github.com/eziocard/andromeda-go/initializers"
-	"github.com/eziocard/andromeda-go/models"
-	"github.com/eziocard/andromeda-go/utils"
+	"github.com/eziocard/andromeda-go/internal/models"
+	"github.com/eziocard/andromeda-go/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
 func ProductCreate(c *gin.Context) {
+	_, businessID, ok := getAuthUserBusiness(c)
+	if !ok {
+		return
+	}
+
 	barcode := strings.TrimSpace(c.PostForm("barcode"))
 	name := c.PostForm("name")
 	priceStr := c.PostForm("price")
@@ -25,14 +30,14 @@ func ProductCreate(c *gin.Context) {
 	}
 
 	product := models.Product{
-		Barcode: barcode,
-		Name:    name,
-		Variety: variety,
-		Price:   uint(price),
-		Stock:   uint(stock),
+		Barcode:    barcode,
+		Name:       name,
+		Variety:    variety,
+		Price:      uint(price),
+		Stock:      uint(stock),
+		BusinessID: businessID,
 	}
 
-	// Imagen es opcional, igual que blank=True en Django
 	fileHeader, err := c.FormFile("image")
 	if err == nil {
 		imgPath, err := utils.SaveProductImage(fileHeader)
@@ -52,23 +57,41 @@ func ProductCreate(c *gin.Context) {
 }
 
 func ProductIndex(c *gin.Context) {
+	_, businessID, ok := getAuthUserBusiness(c)
+	if !ok {
+		return
+	}
+
 	var products []models.Product
-	initializers.DB.Find(&products)
+	initializers.DB.Where("business_id = ?", businessID).Find(&products)
 	c.JSON(200, gin.H{"products": products})
 }
 
 func ProductShow(c *gin.Context) {
+	_, businessID, ok := getAuthUserBusiness(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 	var product models.Product
-	initializers.DB.First(&product, id)
+	result := initializers.DB.Where("business_id = ?", businessID).First(&product, id)
+	if result.Error != nil {
+		c.JSON(404, gin.H{"error": "Producto no encontrado"})
+		return
+	}
 	c.JSON(200, gin.H{"product": product})
 }
 
-// Equivalente al @action by_barcode de Django
 func ProductShowByBarcode(c *gin.Context) {
+	_, businessID, ok := getAuthUserBusiness(c)
+	if !ok {
+		return
+	}
+
 	barcode := strings.TrimSpace(c.Param("barcode"))
 	var product models.Product
-	result := initializers.DB.Where("barcode = ?", barcode).First(&product)
+	result := initializers.DB.Where("barcode = ? AND business_id = ?", barcode, businessID).First(&product)
 	if result.Error != nil {
 		c.JSON(404, gin.H{"error": "Producto no encontrado"})
 		return
@@ -77,10 +100,15 @@ func ProductShowByBarcode(c *gin.Context) {
 }
 
 func ProductsUpdate(c *gin.Context) {
+	_, businessID, ok := getAuthUserBusiness(c)
+	if !ok {
+		return
+	}
+
 	barcode := strings.TrimSpace(c.Param("barcode"))
 
 	var product models.Product
-	if err := initializers.DB.Where("barcode = ?", barcode).First(&product).Error; err != nil {
+	if err := initializers.DB.Where("barcode = ? AND business_id = ?", barcode, businessID).First(&product).Error; err != nil {
 		c.JSON(404, gin.H{"error": "Producto no encontrado"})
 		return
 	}
@@ -121,11 +149,18 @@ func ProductsUpdate(c *gin.Context) {
 }
 
 func ProductsDelete(c *gin.Context) {
+	_, businessID, ok := getAuthUserBusiness(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
-	initializers.DB.Delete(&models.Product{}, id)
+	result := initializers.DB.Where("business_id = ?", businessID).Delete(&models.Product{}, id)
+	if result.RowsAffected == 0 {
+		c.JSON(404, gin.H{"error": "Producto no encontrado"})
+		return
+	}
 
-	c.JSON(200, gin.H{
-		"message": "Producto eliminado correctamente",
-	})
+	c.JSON(200, gin.H{"message": "Producto eliminado correctamente"})
 }

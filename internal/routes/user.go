@@ -23,5 +23,7 @@ func UserRoutes(r *gin.Engine) {
 
 	userGroup.GET("/me", controllers.UserMe)
 	userGroup.GET("", controllers.UsersIndex)
+	userGroup.DELETE("/:id", controllers.UserDelete)
+	userGroup.PATCH("/:id", controllers.UserPatch)
 
 }

@@ -323,3 +323,152 @@ func UserMe(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"user": user})
 }
+
+func UserDelete(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id de usuario requerido"})
+		return
+	}
+
+	var user models.User
+	if err := initializers.DB.First(&user, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "usuario no encontrado"})
+		return
+	}
+
+	if currentUserValue, exists := c.Get("user"); exists {
+		if currentUser, ok := currentUserValue.(models.User); ok {
+			if currentUser.ID == user.ID {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "no podés eliminar tu propia cuenta desde aquí"})
+				return
+			}
+		}
+	}
+
+	tx := initializers.DB.Begin()
+	if tx.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "no se pudo iniciar la transacción"})
+		return
+	}
+
+	if err := tx.Model(&models.RefreshToken{}).
+		Where("user_id = ? AND revoked = ?", user.ID, false).
+		Update("revoked", true).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "no se pudieron revocar las sesiones del usuario"})
+		return
+	}
+
+	if err := tx.Delete(&user).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "no se pudo eliminar el usuario"})
+		return
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "no se pudo confirmar la eliminación"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "usuario eliminado correctamente"})
+}
+
+func UserPatch(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id de usuario requerido"})
+		return
+	}
+
+	var body struct {
+		Name       *string `json:"name"`
+		LastName   *string `json:"lastname"`
+		Contact    *string `json:"contact"`
+		Email      *string `json:"email" binding:"omitempty,email"`
+		Password   *string `json:"password"`
+		RoleID     *uint   `json:"roleId"`
+		BusinessID *uint   `json:"businessId"`
+	}
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var user models.User
+	if err := initializers.DB.First(&user, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "usuario no encontrado"})
+		return
+	}
+
+	if body.RoleID != nil {
+		var role models.Role
+		if err := initializers.DB.First(&role, *body.RoleID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "el rol especificado no existe"})
+			return
+		}
+		user.RoleID = *body.RoleID
+	}
+
+	if body.BusinessID != nil {
+		var business models.Business
+		if err := initializers.DB.First(&business, *body.BusinessID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "el negocio especificado no existe"})
+			return
+		}
+		user.BusinessID = body.BusinessID
+	}
+
+	if body.Name != nil {
+		user.Name = *body.Name
+	}
+	if body.LastName != nil {
+		user.LastName = *body.LastName
+	}
+	if body.Contact != nil {
+		user.Contact = *body.Contact
+	}
+
+	if body.Email != nil {
+		newEmail := strings.ToLower(strings.TrimSpace(*body.Email))
+
+		// Evitamos colisión con el email de otro usuario
+		var existing models.User
+		if err := initializers.DB.Where("email = ? AND id != ?", newEmail, user.ID).First(&existing).Error; err == nil {
+			c.JSON(http.StatusConflict, gin.H{"error": "ya existe otro usuario con ese email"})
+			return
+		}
+
+		user.Email = newEmail
+	}
+
+	// Contraseña: solo se actualiza si viene no vacía
+	if body.Password != nil && *body.Password != "" {
+		if len(*body.Password) < 8 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "la contraseña debe tener al menos 8 caracteres"})
+			return
+		}
+
+		hash, err := bcrypt.GenerateFromPassword([]byte(*body.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "no se pudo procesar la contraseña"})
+			return
+		}
+		user.Password = string(hash)
+	}
+
+	if err := initializers.DB.Save(&user).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no se pudo actualizar el usuario: " + err.Error()})
+		return
+	}
+
+	if err := initializers.DB.Preload("Role").Preload("Business").First(&user, user.ID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "usuario actualizado pero no se pudo cargar la información completa"})
+		return
+	}
+
+	user.Password = ""
+
+	c.JSON(http.StatusOK, gin.H{"user": user})
+}

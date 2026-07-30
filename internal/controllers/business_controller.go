@@ -120,3 +120,39 @@ func BusinessUpdate(c *gin.Context) {
 		"business": business,
 	})
 }
+
+func BusinessDelete(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id de negocio requerido"})
+		return
+	}
+
+	var business models.Business
+	if err := initializers.DB.First(&business, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "negocio no encontrado"})
+		return
+	}
+
+	var usersCount int64
+	if err := initializers.DB.Model(&models.User{}).
+		Where("business_id = ?", business.ID).
+		Count(&usersCount).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "no se pudo verificar los usuarios asociados"})
+		return
+	}
+
+	if usersCount > 0 {
+		c.JSON(http.StatusConflict, gin.H{
+			"error": "no se puede eliminar el negocio: tiene usuarios asociados. Reasígnalos o elimínalos primero",
+		})
+		return
+	}
+
+	if err := initializers.DB.Delete(&business).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "no se pudo eliminar el negocio"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "negocio eliminado correctamente"})
+}

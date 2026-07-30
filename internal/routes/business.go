@@ -19,5 +19,6 @@ func BusinessRoutes(r *gin.Engine) {
 	businessGroup.POST("", controllers.BusinessCreate)
 	businessGroup.GET("", controllers.BusinessIndex)
 	businessGroup.PATCH("/:id", controllers.BusinessUpdate)
+	businessGroup.DELETE("/:id", controllers.BusinessDelete)
 
 }

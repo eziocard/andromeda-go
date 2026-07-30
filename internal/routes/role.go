@@ -8,11 +8,12 @@ import (
 
 func RoleRoutes(r *gin.Engine) {
 	roles := r.Group("/roles")
+	roles.POST("", controllers.RoleCreate)
 	roles.Use(
 		middlewares.RequireAuth,
 		middlewares.RequireRole("superuser"),
 	)
 
 	roles.GET("", controllers.RolesIndex)
-	roles.POST("", controllers.RoleCreate)
+
 }

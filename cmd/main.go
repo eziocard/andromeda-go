@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"strings"
 	"time"
 
 	"github.com/eziocard/andromeda-go/initializers"
@@ -15,19 +17,21 @@ func init() {
 }
 
 func main() {
-
 	r := gin.Default()
 
+	allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
+
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
 	r.Static("/media", "./media")
-	// Todo Routes
+
 	routes.ProductRoutes(r)
 	routes.SaleRoutes(r)
 	routes.BusinessRoutes(r)

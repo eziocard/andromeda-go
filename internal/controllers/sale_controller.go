@@ -32,18 +32,31 @@ func SaleCreate(c *gin.Context) {
 		var total uint
 
 		products := make(map[uint]models.Product)
+		unitPrices := make(map[uint]uint)
+
 		for _, item := range body.Details {
 			var product models.Product
 			if err := tx.Where("business_id = ?", businessID).First(&product, item.Product).Error; err != nil {
 				return fmt.Errorf("producto no encontrado o no pertenece a tu negocio")
 			}
 
-			if product.Stock < item.Quantity {
-				return fmt.Errorf("stock insuficiente para %s (disponible: %d, solicitado: %d)", product.Name, product.Stock, item.Quantity)
+			var unitPrice uint
+			if product.IsWeighted {
+				// El stock no aplica y el precio lo define el usuario al vender.
+				if item.UnitPrice == nil || *item.UnitPrice == 0 {
+					return fmt.Errorf("debes ingresar un monto válido para %s", product.Name)
+				}
+				unitPrice = *item.UnitPrice
+			} else {
+				if product.Stock < item.Quantity {
+					return fmt.Errorf("stock insuficiente para %s (disponible: %d, solicitado: %d)", product.Name, product.Stock, item.Quantity)
+				}
+				unitPrice = product.Price
 			}
 
-			total += product.Price * item.Quantity
+			total += unitPrice * item.Quantity
 			products[product.ID] = product
+			unitPrices[product.ID] = unitPrice
 		}
 
 		sale = models.Sale{
@@ -68,12 +81,13 @@ func SaleCreate(c *gin.Context) {
 
 		for _, item := range body.Details {
 			product := products[uint(item.Product)]
+			unitPrice := unitPrices[product.ID]
 
 			detail := models.SaleDetail{
 				SaleID:      sale.ID,
 				ProductID:   product.ID,
 				ProductName: product.Name,
-				UnitPrice:   product.Price,
+				UnitPrice:   unitPrice,
 				Quantity:    item.Quantity,
 				BusinessID:  businessID,
 			}
@@ -81,10 +95,12 @@ func SaleCreate(c *gin.Context) {
 				return err
 			}
 
-			if err := tx.Model(&models.Product{}).
-				Where("id = ?", product.ID).
-				UpdateColumn("stock", gorm.Expr("stock - ?", item.Quantity)).Error; err != nil {
-				return err
+			if !product.IsWeighted {
+				if err := tx.Model(&models.Product{}).
+					Where("id = ?", product.ID).
+					UpdateColumn("stock", gorm.Expr("stock - ?", item.Quantity)).Error; err != nil {
+					return err
+				}
 			}
 		}
 
@@ -98,7 +114,6 @@ func SaleCreate(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, sale)
 }
-
 func SaleIndex(c *gin.Context) {
 	user, businessID, ok := getAuthUserBusiness(c)
 	if !ok {
@@ -206,14 +221,19 @@ func SaleVoid(c *gin.Context) {
 				return err
 			}
 
-			// 2. Reincorporamos el stock del producto
-			if err := tx.Model(&models.Product{}).
-				Where("id = ? AND business_id = ?", d.ProductID, businessID).
-				UpdateColumn("stock", gorm.Expr("stock + ?", d.Quantity)).Error; err != nil {
-				return err
+			var product models.Product
+			if err := tx.Where("business_id = ?", businessID).First(&product, d.ProductID).Error; err == nil {
+				if !product.IsWeighted {
+					// Reincorporamos el stock del producto solo si aplica
+					if err := tx.Model(&models.Product{}).
+						Where("id = ? AND business_id = ?", d.ProductID, businessID).
+						UpdateColumn("stock", gorm.Expr("stock + ?", d.Quantity)).Error; err != nil {
+						return err
+					}
+				}
 			}
+			// Si el producto ya no existe (fue borrado), simplemente no reincorporamos stock.
 		}
-
 		for _, p := range sale.Payments {
 			voidedPayment := models.VoidedSalePayment{
 				Method:       p.Method,

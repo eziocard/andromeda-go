@@ -433,7 +433,6 @@ func UserPatch(c *gin.Context) {
 	if body.Email != nil {
 		newEmail := strings.ToLower(strings.TrimSpace(*body.Email))
 
-		// Evitamos colisión con el email de otro usuario
 		var existing models.User
 		if err := initializers.DB.Where("email = ? AND id != ?", newEmail, user.ID).First(&existing).Error; err == nil {
 			c.JSON(http.StatusConflict, gin.H{"error": "ya existe otro usuario con ese email"})
@@ -442,6 +441,8 @@ func UserPatch(c *gin.Context) {
 
 		user.Email = newEmail
 	}
+
+	passwordChanged := false
 
 	// Contraseña: solo se actualiza si viene no vacía
 	if body.Password != nil && *body.Password != "" {
@@ -456,10 +457,35 @@ func UserPatch(c *gin.Context) {
 			return
 		}
 		user.Password = string(hash)
+		passwordChanged = true
 	}
 
-	if err := initializers.DB.Save(&user).Error; err != nil {
+	tx := initializers.DB.Begin()
+	if tx.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "no se pudo iniciar la transacción"})
+		return
+	}
+
+	if err := tx.Save(&user).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no se pudo actualizar el usuario: " + err.Error()})
+		return
+	}
+
+	// Si cambió la contraseña, revocamos todos los refresh tokens activos
+	// para invalidar cualquier sesión que pudiera haber sido comprometida.
+	if passwordChanged {
+		if err := tx.Model(&models.RefreshToken{}).
+			Where("user_id = ? AND revoked = ?", user.ID, false).
+			Update("revoked", true).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "no se pudieron revocar las sesiones anteriores"})
+			return
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "no se pudo confirmar la actualización"})
 		return
 	}
 

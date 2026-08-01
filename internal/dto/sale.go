@@ -3,8 +3,9 @@ package dto
 // ---- Entrada ----
 
 type SaleDetailInput struct {
-	Product  uint `json:"product" binding:"required"`
-	Quantity uint `json:"quantity" binding:"required"`
+	Product   uint  `json:"product" binding:"required"`
+	Quantity  uint  `json:"quantity" binding:"required"`
+	UnitPrice *uint `json:"unitPrice"` // solo para productos a peso (isWeighted); en catálogo normal se ignora
 }
 
 type SalePaymentInput struct {

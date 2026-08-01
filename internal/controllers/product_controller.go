@@ -20,6 +20,7 @@ func ProductCreate(c *gin.Context) {
 	name := c.PostForm("name")
 	priceStr := c.PostForm("price")
 	stockStr := c.PostForm("stock")
+	isWeighted := c.PostForm("isWeighted") == "true"
 
 	price, _ := strconv.ParseUint(priceStr, 10, 32)
 	stock, _ := strconv.ParseUint(stockStr, 10, 32)
@@ -35,6 +36,7 @@ func ProductCreate(c *gin.Context) {
 		Variety:    variety,
 		Price:      uint(price),
 		Stock:      uint(stock),
+		IsWeighted: isWeighted,
 		BusinessID: businessID,
 	}
 
@@ -129,6 +131,9 @@ func ProductsUpdate(c *gin.Context) {
 	if stockStr := c.PostForm("stock"); stockStr != "" {
 		stock, _ := strconv.ParseUint(stockStr, 10, 32)
 		product.Stock = uint(stock)
+	}
+	if isWeightedStr := c.PostForm("isWeighted"); isWeightedStr != "" {
+		product.IsWeighted = isWeightedStr == "true"
 	}
 
 	fileHeader, err := c.FormFile("image")

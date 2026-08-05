@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/eziocard/andromeda-go/initializers"
 	"github.com/eziocard/andromeda-go/internal/models"
 )
@@ -11,7 +13,7 @@ func init() {
 }
 
 func main() {
-	initializers.DB.AutoMigrate(
+	err := initializers.DB.AutoMigrate(
 		&models.Product{},
 		&models.Sale{},
 		&models.SaleDetail{},
@@ -22,5 +24,12 @@ func main() {
 		&models.RefreshToken{},
 		&models.VoidedSale{},
 		&models.VoidedSaleDetail{},
-		&models.VoidedSalePayment{})
+		&models.VoidedSalePayment{},
+	)
+
+	if err != nil {
+		log.Fatalf("Error al migrar: %v", err)
+	}
+
+	log.Println("Migraciones aplicadas correctamente")
 }

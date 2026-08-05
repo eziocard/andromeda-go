@@ -9,6 +9,6 @@ import (
 func LoadEnvVariables() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("No se encontró .env, se usará el entorno del sistema (esperado en Docker/producción)")
 	}
 }

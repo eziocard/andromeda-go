@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: [self-hosted, andromeda]
+    runs-on: [self-hosted, production]
 
     steps:
       - name: Deploy

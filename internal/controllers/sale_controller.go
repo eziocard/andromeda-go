@@ -14,7 +14,7 @@ import (
 )
 
 func SaleCreate(c *gin.Context) {
-	_, businessID, ok := getAuthUserBusiness(c)
+	user, businessID, ok := getAuthUserBusiness(c)
 	if !ok {
 		return
 	}
@@ -42,7 +42,6 @@ func SaleCreate(c *gin.Context) {
 
 			var unitPrice uint
 			if product.IsWeighted {
-				// El stock no aplica y el precio lo define el usuario al vender.
 				if item.UnitPrice == nil || *item.UnitPrice == 0 {
 					return fmt.Errorf("debes ingresar un monto válido para %s", product.Name)
 				}
@@ -62,6 +61,8 @@ func SaleCreate(c *gin.Context) {
 		sale = models.Sale{
 			Total:      total,
 			BusinessID: businessID,
+			SellerID:   user.ID,
+			SellerName: user.Name + " " + user.LastName,
 		}
 		if err := tx.Create(&sale).Error; err != nil {
 			return err
